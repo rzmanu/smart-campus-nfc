@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enrolamiento - Smart Campus NFC</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; }
+        body { background-color: #f4f6f9; display: flex; justify-content: center; padding: 20px; }
+        .card { background: #fff; width: 100%; max-width: 500px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.15); overflow: hidden; border: 2px solid #6b1d2f; }
+        .header { background: #6b1d2f; color: white; text-align: center; padding: 15px; font-weight: bold; font-size: 16px; }
+        .form-container { padding: 20px; }
+        .section-title { font-size: 14px; font-weight: bold; color: #6b1d2f; border-bottom: 2px solid #6b1d2f; margin: 15px 0 10px; padding-bottom: 3px; }
+        .form-group { margin-bottom: 12px; }
+        label { display: block; font-size: 12px; font-weight: bold; color: #555; margin-bottom: 4px; }
+        input, select { width: 100%; padding: 8px 10px; border: 1px solid #ccc; border-radius: 5px; font-size: 14px; }
+        .btn-submit { width: 100%; padding: 12px; background-color: #6b1d2f; color: white; border: none; border-radius: 6px; font-size: 15px; font-weight: bold; cursor: pointer; margin-top: 15px; }
+        .btn-submit:hover { background-color: #501422; }
+        .alert { display: none; padding: 10px; margin-top: 15px; border-radius: 6px; font-size: 13px; font-weight: bold; text-align: center; }
+        .alert-success { background-color: #d4edda; color: #155724; }
+        .alert-error { background-color: #f8d7da; color: #721c24; }
+        .nav-link { text-align: center; margin-top: 15px; font-size: 13px; }
+        .nav-link a { color: #6b1d2f; font-weight: bold; text-decoration: none; }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <div class="header">MÓDULO DE ENROLAMIENTO Y VINCULACIÓN NFC</div>
+    <div class="form-container">
+        
+        <form id="enrolForm" onsubmit="guardarRegistro(event)">
+            
+            <div class="section-title">1. DATOS DEL USUARIO</div>
+            <div class="form-group">
+                <label>Boleta / Num. Empleado (*):</label>
+                <input type="text" id="boleta" placeholder="Ej. 2022630123" required>
+            </div>
+            <div class="form-group">
+                <label>Nombre Completo (*):</label>
+                <input type="text" id="nombre" placeholder="Ej. Gómez Hernández Carlos" required>
+            </div>
+            <div class="form-group">
+                <label>Rol (*):</label>
+                <select id="rol">
+                    <option value="Alumno">Alumno</option>
+                    <option value="Docente">Docente</option>
+                    <option value="PAAE">PAAE (Administrativo)</option>
+                    <option value="Investigador">Investigador</option>
+                </select>
+            </div>
+
+            <div class="section-title">2. DATOS DEL VEHÍCULO DE MICROMOVILIDAD</div>
+            <div class="form-group">
+                <label>Tipo de Vehículo (*):</label>
+                <select id="tipoVehiculo">
+                    <option value="Bicicleta">Bicicleta</option>
+                    <option value="Bicicleta Eléctrica">Bicicleta Eléctrica</option>
+                    <option value="Monopatín Eléctrico">Monopatín Eléctrico (e-Scooter)</option>
+                    <option value="Motocicleta">Motocicleta / Motoneta</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Marca (*):</label>
+                <input type="text" id="marca" placeholder="Ej. Xiaomi / Giant / Italika" required>
+            </div>
+            <div class="form-group">
+                <label>Modelo (*):</label>
+                <input type="text" id="modelo" placeholder="Ej. Mi Scooter 3 / AT125" required>
+            </div>
+            <div class="form-group">
+                <label>Color (*):</label>
+                <input type="text" id="color" placeholder="Ej. Negro / Rojo" required>
+            </div>
+            <div class="form-group">
+                <label>Número de Serie del Chasis:</label>
+                <input type="text" id="numeroSerie" placeholder="Ej. SN-99887766">
+            </div>
+
+            <div class="section-title">3. VINCULACIÓN DE ETIQUETA NFC</div>
+            <div class="form-group">
+                <label>UID del Tag NFC (*):</label>
+                <input type="text" id="tagUid" placeholder="Escanear o ingresar UID (ej. 04B99C12)" required>
+            </div>
+
+            <button type="submit" class="btn-submit">💾 REGISTRAR Y VINCULAR VEHÍCULO</button>
+        </form>
+
+        <div id="mensajeAlerta" class="alert"></div>
+
+        <div class="nav-link">
+            <a href="index.html">← Volver al Panel del Guardia</a>
+        </div>
+    </div>
+</div>
+
+<script>
+    const API_URL = "http://127.0.0.1:5000/api";
+
+    async function guardarRegistro(event) {
+        event.preventDefault();
+
+        const payload = {
+            boleta_empleado: document.getElementById('boleta').value.trim(),
+            nombre_completo: document.getElementById('nombre').value.trim(),
+            rol: document.getElementById('rol').value,
+            unidad_academica: 'ESIME Zacatenco',
+            tipo: document.getElementById('tipoVehiculo').value,
+            marca: document.getElementById('marca').value.trim(),
+            modelo: document.getElementById('modelo').value.trim(),
+            color: document.getElementById('color').value.trim(),
+            numero_serie: document.getElementById('numeroSerie').value.trim(),
+            tag_nfc_uid: document.getElementById('tagUid').value.trim()
+        };
+
+        try {
+            const res = await fetch(`${API_URL}/enroled`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            const data = await res.json();
+            const alertBox = document.getElementById('mensajeAlerta');
+
+            if(data.exito) {
+                alertBox.innerText = `✔ ${data.mensaje}`;
+                alertBox.className = "alert alert-success";
+                alertBox.style.display = "block";
+                document.getElementById('enrolForm').reset();
+            } else {
+                alertBox.innerText = `✖ ${data.mensaje}`;
+                alertBox.className = "alert alert-error";
+                alertBox.style.display = "block";
+            }
+        } catch (e) {
+            const alertBox = document.getElementById('mensajeAlerta');
+            alertBox.innerText = "Error al conectar con el Servidor.";
+            alertBox.className = "alert alert-error";
+            alertBox.style.display = "block";
+        }
+    }
+</script>
+
+</body>
+</html>

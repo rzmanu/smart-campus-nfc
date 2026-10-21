@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Smart Campus NFC</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; }
+        body { background-color: #f4f6f9; display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 15px; }
+        .login-card { background: white; width: 100%; max-width: 360px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.15); overflow: hidden; border: 2px solid #6b1d2f; }
+        .header { background: #6b1d2f; color: white; padding: 20px; text-align: center; }
+        .header h2 { font-size: 16px; font-weight: bold; }
+        .header p { font-size: 12px; opacity: 0.8; margin-top: 4px; }
+        .form-body { padding: 25px 20px; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; font-size: 12px; font-weight: bold; color: #555; margin-bottom: 5px; }
+        input { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px; }
+        .btn-login { width: 100%; padding: 12px; background-color: #6b1d2f; color: white; border: none; border-radius: 6px; font-size: 14px; font-weight: bold; cursor: pointer; transition: 0.2s; }
+        .btn-login:hover { background-color: #501422; }
+        .alert { display: none; padding: 10px; margin-top: 15px; border-radius: 6px; font-size: 12px; text-align: center; font-weight: bold; }
+        .alert-error { background-color: #f8d7da; color: #721c24; }
+    </style>
+</head>
+<body>
+
+<div class="login-card">
+    <div class="header">
+        <h2>SMART CAMPUS NFC</h2>
+        <p>Control de Acceso ESIME Zacatenco</p>
+    </div>
+    <div class="form-body">
+        <form id="loginForm">
+            <div class="form-group">
+                <label>Usuario:</label>
+                <input type="text" id="usuario" placeholder="Ej. guardia / admin" required>
+            </div>
+            <div class="form-group">
+                <label>Contraseña:</label>
+                <input type="password" id="password" placeholder="••••••••" required>
+            </div>
+            <button type="button" onclick="ejecutarLogin()" class="btn-login">INICIAR SESIÓN</button>
+        </form>
+        <div id="mensajeAlerta" class="alert alert-error"></div>
+    </div>
+</div>
+
+<script>
+    async function ejecutarLogin() {
+        const usuarioVal = document.getElementById('usuario').value.trim();
+        const passwordVal = document.getElementById('password').value.trim();
+        const alertBox = document.getElementById('mensajeAlerta');
+
+        alertBox.style.display = "none";
+
+        if (!usuarioVal || !passwordVal) {
+            alertBox.innerText = "Ingresa usuario y contraseña.";
+            alertBox.style.display = "block";
+            return;
+        }
+
+        try {
+            const response = await fetch("http://127.0.0.1:5000/api/login", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    usuario: usuarioVal,
+                    password: passwordVal
+                })
+            });
+
+            const data = await response.json();
+
+            if (response.ok && data.exito) {
+                localStorage.setItem('sesion_activa', JSON.stringify({
+                    usuario: data.usuario,
+                    rol: data.rol
+                }));
+                window.location.href = "index.html";
+            } else {
+                alertBox.innerText = data.mensaje || "Credenciales incorrectas.";
+                alertBox.style.display = "block";
+            }
+        } catch (err) {
+            console.error("Error detectado:", err);
+            alertBox.innerText = "Error al conectar con el servidor.";
+            alertBox.style.display = "block";
+        }
+    }
+</script>
+
+</body>
+</html>

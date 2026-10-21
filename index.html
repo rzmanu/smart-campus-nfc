@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Campus NFC - Control de Acceso</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; }
+        body { background-color: #f4f6f9; display: flex; justify-content: center; padding: 15px; }
+        .app-card { background: #fff; width: 100%; max-width: 420px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.15); overflow: hidden; border: 2px solid #6b1d2f; }
+        .header { background: #6b1d2f; color: white; text-align: center; padding: 15px; font-weight: bold; font-size: 16px; }
+        .content { padding: 20px; text-align: center; }
+        .avatar { width: 90px; height: 90px; border-radius: 50%; background: #e0e0e0; margin: 0 auto 10px; display: flex; align-items: center; justify-content: center; font-size: 32px; border: 3px solid #6b1d2f; }
+        .user-name { font-size: 18px; font-weight: bold; color: #333; }
+        .user-info { font-size: 14px; color: #666; margin-bottom: 15px; }
+        .bike-card { background: #f8f9fa; border: 1px solid #ddd; border-radius: 8px; padding: 12px; text-align: left; margin-bottom: 15px; font-size: 13px; line-height: 1.6; }
+        .status-badge { display: inline-block; padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: bold; color: white; margin-top: 5px; }
+        .badge-fuera { background: #dc3545; }
+        .badge-dentro { background: #28a745; }
+        .btn { width: 100%; padding: 12px; border: none; border-radius: 6px; font-size: 14px; font-weight: bold; color: white; margin-bottom: 10px; cursor: pointer; transition: 0.2s; }
+        .btn-entrada { background-color: #28a745; }
+        .btn-salida { background-color: #dc3545; }
+        .btn:disabled { background-color: #ccc; cursor: not-allowed; }
+        .alert { display: none; padding: 10px; margin-top: 10px; border-radius: 6px; font-size: 13px; font-weight: bold; }
+        .alert-success { background-color: #d4edda; color: #155724; }
+        .alert-error { background-color: #f8d7da; color: #721c24; }
+        .search-box { display: flex; gap: 8px; margin-bottom: 15px; }
+        .search-box input { flex: 1; padding: 8px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px; }
+        .search-box button { padding: 8px 12px; background: #6b1d2f; color: white; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+<div class="app-card">
+    <div class="header">CONTROL ACCESO IPN - ESIME ZACATENCO</div>
+    <div class="content">
+        
+        <!-- Simulación de lectura NFC / UID -->
+        <div class="search-box">
+            <input type="text" id="uidInput" value="04A28B91" placeholder="UID de Etiqueta NFC...">
+            <button onclick="buscarUID()">Escanear</button>
+        </div>
+
+        <div id="fichaUsuario" style="display: none;">
+            <div class="avatar">👤</div>
+            <div class="user-name" id="userName">---</div>
+            <div class="user-info">Boleta: <span id="userBoleta">---</span> | <span id="userRol">---</span></div>
+
+            <div class="bike-card">
+                <strong>Vehículo:</strong> <span id="bikeTipo">---</span> <br>
+                <strong>Marca/Modelo:</strong> <span id="bikeMarcaModelo">---</span> <br>
+                <strong>Color:</strong> <span id="bikeColor">---</span> <br>
+                <strong>Serie:</strong> <span id="bikeSerie">---</span> <br>
+                <strong>Estatus actual:</strong> <span id="statusBadge" class="status-badge badge-fuera">FUERA</span>
+            </div>
+
+            <button class="btn btn-entrada" id="btnEntrada" onclick="registrarAcceso('ENTRADA')">✔ REGISTRAR ENTRADA</button>
+            <button class="btn btn-salida" id="btnSalida" onclick="registrarAcceso('SALIDA')">✖ REGISTRAR SALIDA</button>
+        </div>
+
+        <div id="mensajeAlerta" class="alert"></div>
+        
+        <div style="text-align: center; margin-top: 15px; font-size: 13px;">
+    <a href="enrolamiento.html" style="color: #6b1d2f; font-weight: bold; text-decoration: none; margin-right: 10px;">+ Enrolamiento</a> | 
+    <a href="bitacora.html" style="color: #6b1d2f; font-weight: bold; text-decoration: none; margin-left: 10px;">📊 Ver Bitácora</a>
+</div>
+    </div>
+</div>
+
+<script>
+    const API_URL = "http://127.0.0.1:5000/api";
+    let vehiculoActualId = null;
+
+    async function buscarUID() {
+        const uid = document.getElementById('uidInput').value.trim();
+        const alertBox = document.getElementById('mensajeAlerta');
+        const ficha = document.getElementById('fichaUsuario');
+
+        if(!uid) return;
+
+        try {
+            const res = await fetch(`${API_URL}/consulta/${uid}`);
+            const data = await res.json();
+
+            if(data.exito) {
+                const d = data.datos;
+                vehiculoActualId = d.id_vehiculo;
+
+                document.getElementById('userName').innerText = d.nombre_completo;
+                document.getElementById('userBoleta').innerText = d.boleta_empleado;
+                document.getElementById('userRol').innerText = d.rol;
+
+                document.getElementById('bikeTipo').innerText = d.tipo;
+                document.getElementById('bikeMarcaModelo').innerText = `${d.marca} ${d.modelo}`;
+                document.getElementById('bikeColor').innerText = d.color;
+                document.getElementById('bikeSerie').innerText = d.numero_serie || 'N/A';
+
+                const badge = document.getElementById('statusBadge');
+                badge.innerText = d.estatus;
+                badge.className = `status-badge ${d.estatus === 'DENTRO' ? 'badge-dentro' : 'badge-fuera'}`;
+
+                ficha.style.display = 'block';
+                alertBox.style.display = 'none';
+            } else {
+                ficha.style.display = 'none';
+                mostrarAlerta(data.mensaje, false);
+            }
+        } catch (e) {
+            ficha.style.display = 'none';
+            mostrarAlerta("Error al conectar con el servidor Backend.", false);
+        }
+    }
+
+    async function registrarAcceso(tipoEvento) {
+        if(!vehiculoActualId) return;
+
+        try {
+            const res = await fetch(`${API_URL}/registro`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    id_vehiculo: vehiculoActualId,
+                    tipo_evento: tipoEvento,
+                    id_guardia: 'CASETA_EDIFICIO_1'
+                })
+            });
+
+            const data = await res.json();
+            if(data.exito) {
+                mostrarAlerta(`✔ ${data.mensaje}`, true);
+                buscarUID(); // Recargar datos para actualizar estatus
+            } else {
+                mostrarAlerta(`✖ ${data.mensaje}`, false);
+            }
+        } catch (e) {
+            mostrarAlerta("Error al registrar evento.", false);
+        }
+    }
+
+    function mostrarAlerta(msg, esExito) {
+        const box = document.getElementById('mensajeAlerta');
+        box.innerText = msg;
+        box.className = `alert ${esExito ? 'alert-success' : 'alert-error'}`;
+        box.style.display = 'block';
+    }
+
+    // Cargar automaticamente el dato de prueba al abrir
+    window.onload = buscarUID;
+</script>
+
+</body>
+</html>

@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bitácora - Smart Campus NFC</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; }
+        body { background-color: #f4f6f9; padding: 20px; display: flex; justify-content: center; }
+        .container { background: white; width: 100%; max-width: 1000px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.15); overflow: hidden; border: 2px solid #6b1d2f; }
+        .header { background: #6b1d2f; color: white; padding: 18px; text-align: center; font-size: 18px; font-weight: bold; }
+        .content { padding: 20px; }
+        
+        .tabs { display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 2px solid #ddd; }
+        .tab-btn { padding: 10px 20px; border: none; background: none; font-size: 14px; font-weight: bold; color: #555; cursor: pointer; border-bottom: 3px solid transparent; }
+        .tab-btn.active { color: #6b1d2f; border-bottom: 3px solid #6b1d2f; }
+        
+        .search-container { margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; }
+        .search-input { padding: 8px 12px; width: 280px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px; }
+
+        table { width: 100%; border-collapse: collapse; font-size: 13px; text-align: left; }
+        th { background: #6b1d2f; color: white; padding: 10px; }
+        td { padding: 10px; border-bottom: 1px solid #eee; }
+        tr:hover { background-color: #f8f9fa; }
+
+        .badge { padding: 4px 8px; border-radius: 12px; font-weight: bold; font-size: 11px; color: white; display: inline-block; }
+        .badge-dentro, .badge-entrada { background: #28a745; }
+        .badge-fuera, .badge-salida { background: #dc3545; }
+
+        .nav-links { margin-top: 20px; text-align: center; font-size: 13px; }
+        .nav-links a { color: #6b1d2f; font-weight: bold; text-decoration: none; margin: 0 10px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header">PANEL DE CONTROL - PADRÓN Y BITÁCORA DE ACCESOS</div>
+    <div class="content">
+
+        <div class="tabs">
+            <button class="tab-btn active" onclick="cambiarVista('padron')">📋 Padrón de Vehículos</button>
+            <button class="tab-btn" onclick="cambiarVista('bitacora')">🕒 Historial de Accesos</button>
+        </div>
+
+        <div class="search-container">
+            <input type="text" id="filtroInput" class="search-input" onkeyup="filtrarTabla()" placeholder="🔍 Buscar por Nombre, Boleta o UID...">
+            <span id="totalCounter" style="font-size: 13px; color: #666; font-weight: bold;">Cargando...</span>
+        </div>
+
+        <!-- Tabla 1: Padrón de Vehículos -->
+        <div id="vistaPadron">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Boleta / ID</th>
+                        <th>Nombre Completo</th>
+                        <th>Vehículo</th>
+                        <th>Marca / Modelo</th>
+                        <th>Color</th>
+                        <th>Tag NFC (UID)</th>
+                        <th>Estatus</th>
+                    </tr>
+                </thead>
+                <tbody id="tablaVehiculos">
+                    <tr><td colspan="7" style="text-align: center;">Cargando registros...</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Tabla 2: Bitácora de Accesos -->
+        <div id="vistaBitacora" style="display: none;">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Fecha y Hora</th>
+                        <th>Evento</th>
+                        <th>Boleta</th>
+                        <th>Usuario</th>
+                        <th>Vehículo</th>
+                        <th>UID NFC</th>
+                        <th>Caseta</th>
+                    </tr>
+                </thead>
+                <tbody id="tablaBitacora">
+                    <tr><td colspan="7" style="text-align: center;">Cargando historial...</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="nav-links">
+            <a href="index.html">← Panel del Guardia</a> | 
+            <a href="enrolamiento.html">+ Nuevo Enrolamiento</a>
+        </div>
+
+    </div>
+</div>
+
+<script>
+    const API_URL = "http://127.0.0.1:5000/api";
+    let vistaActual = 'padron';
+
+    async function cargarPadron() {
+        try {
+            const res = await fetch(`${API_URL}/vehiculos`);
+            const data = await res.json();
+            
+            if(data.exito) {
+                const tbody = document.getElementById('tablaVehiculos');
+                tbody.innerHTML = '';
+                document.getElementById('totalCounter').innerText = `Total registrados: ${data.total}`;
+
+                data.datos.forEach(v => {
+                    const tr = document.createElement('tr');
+                    const badgeClass = v.estatus === 'DENTRO' ? 'badge-dentro' : 'badge-fuera';
+                    tr.innerHTML = `
+                        <td><strong>${v.boleta_empleado}</strong></td>
+                        <td>${v.nombre_completo}</td>
+                        <td>${v.tipo}</td>
+                        <td>${v.marca} ${v.modelo}</td>
+                        <td>${v.color}</td>
+                        <td><code>${v.tag_nfc_uid}</code></td>
+                        <td><span class="badge ${badgeClass}">${v.estatus}</span></td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            }
+        } catch(e) {
+            console.error("Error al cargar padrón:", e);
+        }
+    }
+
+    async function cargarBitacora() {
+        try {
+            const res = await fetch(`${API_URL}/bitacora`);
+            const data = await res.json();
+            
+            if(data.exito) {
+                const tbody = document.getElementById('tablaBitacora');
+                tbody.innerHTML = '';
+                document.getElementById('totalCounter').innerText = `Total accesos: ${data.total}`;
+
+                data.datos.forEach(r => {
+                    const tr = document.createElement('tr');
+                    const badgeClass = r.tipo_evento === 'ENTRADA' ? 'badge-entrada' : 'badge-salida';
+                    
+                    // Formatear la fecha
+                    const fecha = new Date(r.timestamp).toLocaleString('es-MX');
+
+                    tr.innerHTML = `
+                        <td>${fecha}</td>
+                        <td><span class="badge ${badgeClass}">${r.tipo_evento}</span></td>
+                        <td><strong>${r.boleta_empleado}</strong></td>
+                        <td>${r.nombre_completo}</td>
+                        <td>${r.tipo} ${r.marca}</td>
+                        <td><code>${r.tag_nfc_uid}</code></td>
+                        <td>${r.id_guardia}</td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            }
+        } catch(e) {
+            console.error("Error al cargar bitácora:", e);
+        }
+    }
+
+    function cambiarVista(vista) {
+        vistaActual = vista;
+        const btnPadron = document.querySelectorAll('.tab-btn')[0];
+        const btnBitacora = document.querySelectorAll('.tab-btn')[1];
+
+        if(vista === 'padron') {
+            document.getElementById('vistaPadron').style.display = 'block';
+            document.getElementById('vistaBitacora').style.display = 'none';
+            btnPadron.classList.add('active');
+            btnBitacora.classList.remove('active');
+            cargarPadron();
+        } else {
+            document.getElementById('vistaPadron').style.display = 'none';
+            document.getElementById('vistaBitacora').style.display = 'block';
+            btnPadron.classList.remove('active');
+            btnBitacora.classList.add('active');
+            cargarBitacora();
+        }
+    }
+
+    function filtrarTabla() {
+        const input = document.getElementById('filtroInput').value.toLowerCase();
+        const tabla = vistaActual === 'padron' ? document.getElementById('tablaVehiculos') : document.getElementById('tablaBitacora');
+        const filas = tabla.getElementsByTagName('tr');
+
+        for(let i = 0; i < filas.length; i++) {
+            const textoFila = filas[i].innerText.toLowerCase();
+            filas[i].style.display = textoFila.includes(input) ? '' : 'none';
+        }
+    }
+
+    // Cargar por defecto
+    window.onload = cargarPadron;
+</script>
+
+</body>
+</html>
