@@ -9,7 +9,7 @@ CORS(app)  # Permite peticiones desde la Web App HTML/JS
 DB_HOST = "mysql-nfc-zacatenco-jprza19-892f.a.aivencloud.com"
 DB_PORT = 11799
 DB_USER = "avnadmin"
-DB_PASSWORD = r"AVNS_0SRER5qnfa6_166jQLQ"
+DB_PASSWORD = r"AVNS_0SRER5qnfA6_166jQLQ"
 DB_NAME = "defaultdb"
 
 def get_db_connection():
