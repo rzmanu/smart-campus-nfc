@@ -9,13 +9,13 @@
         body { background-color: #f4f6f9; padding: 20px; display: flex; justify-content: center; }
         .container { background: white; width: 100%; max-width: 1000px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.15); overflow: hidden; border: 2px solid #6b1d2f; }
         .header { background: #6b1d2f; color: white; padding: 18px; text-align: center; font-size: 18px; font-weight: bold; }
-        .content { padding: 20px; }
+        .content { padding: 20px; overflow-x: auto; }
         
         .tabs { display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 2px solid #ddd; }
         .tab-btn { padding: 10px 20px; border: none; background: none; font-size: 14px; font-weight: bold; color: #555; cursor: pointer; border-bottom: 3px solid transparent; }
         .tab-btn.active { color: #6b1d2f; border-bottom: 3px solid #6b1d2f; }
         
-        .search-container { margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; }
+        .search-container { margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
         .search-input { padding: 8px 12px; width: 280px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px; }
 
         table { width: 100%; border-collapse: collapse; font-size: 13px; text-align: left; }
@@ -96,7 +96,9 @@
 </div>
 
 <script>
-    const API_URL = "http://127.0.0.1:5000/api";
+    const API_URL = window.location.protocol === 'file:'
+        ? "https://smart-campus-nfc.onrender.com/api"
+        : `${window.location.origin}/api`;
     let vistaActual = 'padron';
 
     async function cargarPadron() {
@@ -142,8 +144,6 @@
                 data.datos.forEach(r => {
                     const tr = document.createElement('tr');
                     const badgeClass = r.tipo_evento === 'ENTRADA' ? 'badge-entrada' : 'badge-salida';
-                    
-                    // Formatear la fecha
                     const fecha = new Date(r.timestamp).toLocaleString('es-MX');
 
                     tr.innerHTML = `
