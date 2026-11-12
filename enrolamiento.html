@@ -16,6 +16,7 @@
         input, select { width: 100%; padding: 8px 10px; border: 1px solid #ccc; border-radius: 5px; font-size: 14px; }
         .btn-submit { width: 100%; padding: 12px; background-color: #6b1d2f; color: white; border: none; border-radius: 6px; font-size: 15px; font-weight: bold; cursor: pointer; margin-top: 15px; }
         .btn-submit:hover { background-color: #501422; }
+        .btn-submit:disabled { background-color: #999; cursor: not-allowed; }
         .alert { display: none; padding: 10px; margin-top: 15px; border-radius: 6px; font-size: 13px; font-weight: bold; text-align: center; }
         .alert-success { background-color: #d4edda; color: #155724; }
         .alert-error { background-color: #f8d7da; color: #721c24; }
@@ -83,7 +84,7 @@
                 <input type="text" id="tagUid" placeholder="Escanear o ingresar UID (ej. 04B99C12)" required>
             </div>
 
-            <button type="submit" class="btn-submit">💾 REGISTRAR Y VINCULAR VEHÍCULO</button>
+            <button type="submit" id="btnGuardar" class="btn-submit">💾 REGISTRAR Y VINCULAR VEHÍCULO</button>
         </form>
 
         <div id="mensajeAlerta" class="alert"></div>
@@ -95,10 +96,15 @@
 </div>
 
 <script>
-    const API_URL = "http://127.0.0.1:5000/api";
+    const API_URL = window.location.protocol === 'file:'
+        ? "https://smart-campus-nfc.onrender.com/api"
+        : `${window.location.origin}/api`;
 
     async function guardarRegistro(event) {
         event.preventDefault();
+        const btn = document.getElementById('btnGuardar');
+        btn.disabled = true;
+        btn.innerText = "GUARDANDO...";
 
         const payload = {
             boleta_empleado: document.getElementById('boleta').value.trim(),
@@ -138,6 +144,9 @@
             alertBox.innerText = "Error al conectar con el Servidor.";
             alertBox.className = "alert alert-error";
             alertBox.style.display = "block";
+        } finally {
+            btn.disabled = false;
+            btn.innerText = "💾 REGISTRAR Y VINCULAR VEHÍCULO";
         }
     }
 </script>
