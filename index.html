@@ -35,9 +35,9 @@
     <div class="header">CONTROL ACCESO IPN - ESIME ZACATENCO</div>
     <div class="content">
         
-        <!-- Simulación de lectura NFC / UID -->
+        <!-- Búsqueda o Entrada manual por contingencia -->
         <div class="search-box">
-            <input type="text" id="uidInput" value="04A28B91" placeholder="UID de Etiqueta NFC...">
+            <input type="text" id="uidInput" placeholder="UID de Etiqueta NFC...">
             <button onclick="buscarUID()">Escanear</button>
         </div>
 
@@ -61,14 +61,16 @@
         <div id="mensajeAlerta" class="alert"></div>
         
         <div style="text-align: center; margin-top: 15px; font-size: 13px;">
-    <a href="enrolamiento.html" style="color: #6b1d2f; font-weight: bold; text-decoration: none; margin-right: 10px;">+ Enrolamiento</a> | 
-    <a href="bitacora.html" style="color: #6b1d2f; font-weight: bold; text-decoration: none; margin-left: 10px;">📊 Ver Bitácora</a>
-</div>
+            <a href="enrolamiento.html" style="color: #6b1d2f; font-weight: bold; text-decoration: none; margin-right: 10px;">+ Enrolamiento</a> | 
+            <a href="bitacora.html" style="color: #6b1d2f; font-weight: bold; text-decoration: none; margin-left: 10px;">📊 Ver Bitácora</a>
+        </div>
     </div>
 </div>
 
 <script>
-    const API_URL = "http://127.0.0.1:5000/api";
+    const API_URL = window.location.protocol === 'file:'
+        ? "https://smart-campus-nfc.onrender.com/api"
+        : `${window.location.origin}/api`;
     let vehiculoActualId = null;
 
     async function buscarUID() {
@@ -77,6 +79,11 @@
         const ficha = document.getElementById('fichaUsuario');
 
         if(!uid) return;
+
+        console.clear();
+        console.log("%c=== ADQUISICIÓN DE IDENTIFICADOR NFC ===", "color: #6b1d2f; font-weight: bold; font-size: 14px;");
+        console.log(`[Entrada] UID capturado: "${uid}"`);
+        console.log(`[Transporte] Despachando GET hacia: ${API_URL}/consulta/${uid}`);
 
         try {
             const res = await fetch(`${API_URL}/consulta/${uid}`);
@@ -128,7 +135,7 @@
             const data = await res.json();
             if(data.exito) {
                 mostrarAlerta(`✔ ${data.mensaje}`, true);
-                buscarUID(); // Recargar datos para actualizar estatus
+                buscarUID(); // Recarga para actualizar el badge de estatus
             } else {
                 mostrarAlerta(`✖ ${data.mensaje}`, false);
             }
@@ -144,8 +151,16 @@
         box.style.display = 'block';
     }
 
-    // Cargar automaticamente el dato de prueba al abrir
-    window.onload = buscarUID;
+    // Al cargar la página: revisa si viene un UID desde la URL del Tag
+    window.onload = () => {
+        const urlParams = new URLSearchParams(window.location.search);
+        const uidDetectado = urlParams.get('uid');
+
+        if (uidDetectado) {
+            document.getElementById('uidInput').value = uidDetectado;
+            buscarUID();
+        }
+    };
 </script>
 
 </body>
